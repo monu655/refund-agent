@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bot, LayoutDashboard, Users, FileText, Zap, Menu, X } from "lucide-react";
+import { Bot, LayoutDashboard, Users, FileText, Zap, Menu, X, TrendingUp } from "lucide-react";
 import { useState } from "react";
 
 const NAV_ITEMS = [
   { href: "/agent", label: "Agent", icon: Bot },
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/analytics", label: "Analytics", icon: TrendingUp },
   { href: "/crm", label: "CRM", icon: Users },
   { href: "/policy", label: "Policy", icon: FileText },
 ];
@@ -23,8 +24,7 @@ export function Navbar() {
         height: "56px", background: "rgba(10,10,15,0.95)",
         backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
         borderBottom: "1px solid var(--border)",
-        display: "flex", alignItems: "center",
-        padding: "0 1rem", gap: "0.5rem",
+        display: "flex", alignItems: "center", padding: "0 1rem", gap: "0.5rem",
       }}>
         {/* Logo */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none", flex: 1 }}>
@@ -37,9 +37,9 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }} className="desktop-nav">
+        <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
+            const active = pathname === href;
             return (
               <Link key={href} href={href} style={{
                 display: "flex", alignItems: "center", gap: "0.4rem",
@@ -55,19 +55,19 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Status — desktop only */}
+        {/* Online status */}
         <div className="desktop-nav" style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.75rem", borderRadius: "999px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", fontSize: "0.75rem", color: "var(--green)", fontWeight: 500, flexShrink: 0 }}>
           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--green)", boxShadow: "0 0 6px var(--green)" }} />
           Online
         </div>
 
-        {/* Hamburger — mobile only */}
+        {/* Hamburger */}
         <button onClick={() => setMenuOpen(!menuOpen)} className="mobile-menu-btn" style={{ background: "none", border: "1px solid var(--border)", borderRadius: "8px", padding: "0.4rem", cursor: "pointer", color: "var(--foreground)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </nav>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile Menu */}
       {menuOpen && (
         <div style={{
           position: "fixed", top: "56px", left: 0, right: 0, zIndex: 49,

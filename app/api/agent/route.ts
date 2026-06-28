@@ -3,24 +3,25 @@ import Groq from "groq-sdk";
 import { TOOL_DEFINITIONS, executeTool } from "@/lib/agent/tools";
 import { sessionStore } from "@/lib/store/sessions";
 import { AgentSession, AgentStep, ToolCall } from "@/types";
+import { sendRefundEmail } from "@/lib/email";
 
 const SYSTEM_PROMPT = `You are RefundAI, an AI refund agent. Process refund requests by calling tools in this exact order:
 1. getCustomerByOrderId - fetch customer
-2. getRefundPolicy - load policy
+2. getRefundPolicy - load policy  
 3. validateRefundWindow - check 30 days
 4. validateRefundHistory - check refund limit
 5. validateProductEligibility - check product type
 6. If all pass: calculateRefundAmount, then approveRefund
 7. If any fail: rejectRefund with exact rule violated
 
-Be professional and concise. Always complete all steps.`;
+Be professional and concise. Always complete all steps before responding.`;
 
 export async function POST(req: NextRequest) {
   const { message, sessionId: existingSessionId } = await req.json();
   if (!message) return new Response(JSON.stringify({ error: "Message required" }), { status: 400 });
 
   const groqKey = process.env.GROQ_API_KEY;
-  if (!groqKey) return new Response(JSON.stringify({ error: "GROQ_API_KEY not set in .env.local" }), { status: 500 });
+  if (!groqKey) return new Response(JSON.stringify({ error: "GROQ_API_KEY not set" }), { status: 500 });
 
   const groq = new Groq({ apiKey: groqKey });
   const sessionId = existingSessionId ?? `sess_${Date.now()}`;
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Determine decision
         const lc = finalResponse.toLowerCase();
         const isApproved = lc.includes("approved") || lc.includes("approve");
         const isRejected = lc.includes("rejected") || lc.includes("unable") || lc.includes("not eligible") || lc.includes("cannot") || lc.includes("ineligible");
@@ -119,12 +121,26 @@ export async function POST(req: NextRequest) {
         addStep("decision", "Decision", session.decision);
         addStep("final_response", "Final Response", finalResponse);
 
+        // Get refund amount
         const approveStep = session.steps.find(s => s.toolCall?.name === "approveRefund" && s.toolCall.status === "success");
         if (approveStep?.toolCall?.result) session.refundAmount = (approveStep.toolCall.result as any).refundAmount;
 
         session.status = "completed";
         session.endTime = new Date().toISOString();
         sessionStore.update(sessionId, session);
+
+        // Send email notification
+        if (session.customer?.email && session.decision !== "pending") {
+          await sendRefundEmail({
+            to: session.customer.email,
+            name: session.customer.name,
+            orderId: session.orderId,
+            decision: session.decision as "approved" | "rejected",
+            amount: session.refundAmount,
+            reason: session.decision === "rejected" ? finalResponse.slice(0, 200) : undefined,
+          });
+          addStep("final_response", "📧 Email Sent", `Notification sent to ${session.customer.email}`);
+        }
 
         sessionStore.addActivityLog({
           id: `log_${Date.now()}`, sessionId, orderId: session.orderId,
@@ -133,7 +149,10 @@ export async function POST(req: NextRequest) {
           timestamp: startTime, duration: Date.now() - new Date(startTime).getTime(),
         });
 
-        send("complete", { sessionId, decision: session.decision, refundAmount: session.refundAmount, response: finalResponse });
+        send("complete", {
+          sessionId, decision: session.decision,
+          refundAmount: session.refundAmount, response: finalResponse,
+        });
 
       } catch (error) {
         session.status = "error";

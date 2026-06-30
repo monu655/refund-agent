@@ -160,13 +160,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Test Cases Table ─────────────────────────────── */}
+      {/* ── Test Cases ─────────────────────────────── */}
       <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 1.5rem 5rem" }}>
         <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
           <p style={{ fontSize: "0.72rem", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: "0.5rem" }}>Live demo data</p>
           <h2 style={{ fontSize: "1.9rem", fontWeight: 700, letterSpacing: "-0.03em" }}>Test these order IDs</h2>
         </div>
-        <div style={{ background: "var(--glass)", border: "1px solid var(--border)", borderRadius: "16px", overflow: "hidden" }}>
+
+        {/* Desktop table */}
+        <div className="desktop-table" style={{ background: "var(--glass)", border: "1px solid var(--border)", borderRadius: "16px", overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1.2fr 1.4fr 1fr 1fr", padding: "0.75rem 1.5rem", borderBottom: "1px solid var(--border)", fontSize: "0.7rem", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             <span>Order ID</span><span>Customer</span><span>Product</span><span>Expected</span><span>Reason</span>
           </div>
@@ -187,11 +189,39 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+
+        {/* Mobile cards */}
+        <div className="mobile-cards" style={{ display: "none", flexDirection: "column", gap: "0.6rem" }}>
+          {TEST_CASES.map(tc => (
+            <div key={tc.id} className="glass" style={{ borderRadius: "12px", padding: "0.875rem 1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#818cf8" }}>{tc.id}</span>
+                <span style={{ padding: "0.15rem 0.5rem", borderRadius: "4px", fontSize: "0.68rem", fontWeight: 700,
+                  background: tc.verdict === "approved" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
+                  color: tc.verdict === "approved" ? "#10b981" : "#ef4444",
+                  border: `1px solid ${tc.verdict === "approved" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                  {tc.verdict === "approved" ? "✓ Approve" : "✗ Reject"}
+                </span>
+              </div>
+              <div style={{ fontWeight: 600, fontSize: "0.85rem", marginBottom: "0.2rem" }}>{tc.name}</div>
+              <div style={{ fontSize: "0.78rem", color: "var(--foreground-secondary)", marginBottom: "0.3rem" }}>{tc.product}</div>
+              <div style={{ fontSize: "0.74rem", color: "var(--foreground-muted)" }}>{tc.reason}</div>
+            </div>
+          ))}
+        </div>
+
         <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
           <Link href="/agent" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.65rem 1.5rem", borderRadius: "8px", background: "linear-gradient(135deg, #6366f1, #4f52e5)", color: "white", fontWeight: 600, fontSize: "0.85rem", textDecoration: "none" }}>
             Open Agent Chat →
           </Link>
         </div>
+
+        <style>{`
+          @media (max-width: 768px) {
+            .desktop-table { display: none !important; }
+            .mobile-cards { display: flex !important; }
+          }
+        `}</style>
       </section>
 
       {/* ── Testimonials ─────────────────────────────────── */}

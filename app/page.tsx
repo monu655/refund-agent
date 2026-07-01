@@ -11,6 +11,10 @@ const FLOW_STEPS = [
   { icon: "📊", label: "Admin Log", desc: "Full reasoning trace recorded" },
 ];
 
+const LIVE_FEED_NAMES = ["Priya S.", "Arjun M.", "Kavya N.", "Deepak V.", "Sneha P.", "Rohit G.", "Meera K.", "Vikram R.", "Pooja A.", "Suresh I.", "Divya M.", "Amit J."];
+const LIVE_FEED_CITIES = ["Mumbai", "Delhi", "Bangalore", "Pune", "Chennai", "Hyderabad", "Kolkata", "Jaipur", "Ahmedabad", "Lucknow"];
+const LIVE_FEED_PRODUCTS = ["headphones", "smartwatch", "shoes", "laptop bag", "earbuds", "speaker", "tablet", "jacket"];
+
 const TEST_CASES = [
   { id: "ORD-2024-8821", name: "Priya Sharma", product: "Sony Headphones", verdict: "approved", reason: "Defective within window" },
   { id: "ORD-2024-7743", name: "Arjun Mehta", product: "Adobe CC License", verdict: "rejected", reason: "Digital product" },
@@ -35,20 +39,115 @@ const TESTIMONIALS = [
   { name: "Aryan M.", role: "VP Operations, Flipkart", text: "Edge case coverage is exceptional. It correctly blocks every policy violation.", avatar: "A" },
 ];
 
-function AnimatedCounter({ target, duration = 2000 }: { target: number; duration?: number }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) { setCount(target); clearInterval(timer); }
-      else setCount(Math.floor(start));
-    }, 16);
-    return () => clearInterval(timer);
-  }, [target, duration]);
-  return <>{count.toLocaleString("en-IN")}</>;
+function generateLiveEvent() {
+  const name = LIVE_FEED_NAMES[Math.floor(Math.random() * LIVE_FEED_NAMES.length)];
+  const city = LIVE_FEED_CITIES[Math.floor(Math.random() * LIVE_FEED_CITIES.length)];
+  const product = LIVE_FEED_PRODUCTS[Math.floor(Math.random() * LIVE_FEED_PRODUCTS.length)];
+  const approved = Math.random() > 0.35;
+  const amount = Math.floor(Math.random() * 40000) + 1500;
+  return {
+    id: Math.random().toString(36).slice(2),
+    name, city, product, approved, amount,
+    time: Date.now(),
+  };
 }
+
+function LiveActivityTicker() {
+  const [events, setEvents] = useState<ReturnType<typeof generateLiveEvent>[]>([]);
+
+  useEffect(() => {
+    // Seed with a few events
+    setEvents([generateLiveEvent(), generateLiveEvent(), generateLiveEvent()]);
+    const interval = setInterval(() => {
+      setEvents(prev => [generateLiveEvent(), ...prev].slice(0, 5));
+    }, 2800);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{ maxWidth: "480px", margin: "0 auto 3rem", position: "relative" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", marginBottom: "0.875rem" }}>
+        <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#10b981", boxShadow: "0 0 8px #10b981", animation: "pulse 1.5s infinite" }} />
+        <span style={{ fontSize: "0.72rem", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>Live Activity</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", minHeight: "168px" }}>
+        {events.map((e, i) => (
+          <div key={e.id} className="fade-in" style={{
+            display: "flex", alignItems: "center", gap: "0.6rem",
+            padding: "0.55rem 0.875rem", borderRadius: "9px",
+            background: "var(--glass)", border: "1px solid var(--border)",
+            fontSize: "0.78rem", opacity: 1 - i * 0.15,
+          }}>
+            <span style={{
+              width: "20px", height: "20px", borderRadius: "50%", flexShrink: 0,
+              background: e.approved ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.6rem",
+            }}>
+              {e.approved ? "✓" : "✗"}
+            </span>
+            <span style={{ color: "var(--foreground-secondary)", flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <strong style={{ color: "var(--foreground)" }}>{e.name}</strong> from {e.city} — {e.product} refund {e.approved ? "approved" : "reviewed"}
+            </span>
+            {e.approved && (
+              <span style={{ color: "#10b981", fontWeight: 700, fontSize: "0.74rem", flexShrink: 0, fontFamily: "var(--font-mono)" }}>
+                ₹{e.amount.toLocaleString("en-IN")}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LiveCounterBanner() {
+  const [count, setCount] = useState(2847);
+  const [amount, setAmount] = useState(4218500);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(c => c + 1);
+      setAmount(a => a + Math.floor(Math.random() * 15000) + 800);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div style={{
+      borderRadius: "18px", padding: "2.5rem 2rem",
+      background: "linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(99,102,241,0.08) 100%)",
+      border: "1px solid rgba(16,185,129,0.15)",
+      display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "2rem",
+      textAlign: "center",
+    }}>
+      <div>
+        <div style={{ fontSize: "2.4rem", fontWeight: 800, letterSpacing: "-0.03em", color: "#10b981", fontVariantNumeric: "tabular-nums" }}>
+          {count.toLocaleString("en-IN")}
+        </div>
+        <div style={{ fontSize: "0.8rem", color: "var(--foreground-muted)", marginTop: "0.3rem" }}>Refunds processed all-time</div>
+      </div>
+      <div>
+        <div style={{ fontSize: "2.4rem", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--foreground)", fontVariantNumeric: "tabular-nums" }}>
+          ₹{(amount / 100000).toFixed(2)}L
+        </div>
+        <div style={{ fontSize: "0.8rem", color: "var(--foreground-muted)", marginTop: "0.3rem" }}>Total refunded to customers</div>
+      </div>
+      <div>
+        <div style={{ fontSize: "2.4rem", fontWeight: 800, letterSpacing: "-0.03em", color: "#6366f1", fontVariantNumeric: "tabular-nums" }}>
+          18.3s
+        </div>
+        <div style={{ fontSize: "0.8rem", color: "var(--foreground-muted)", marginTop: "0.3rem" }}>Average decision time</div>
+      </div>
+      <div>
+        <div style={{ fontSize: "2.4rem", fontWeight: 800, letterSpacing: "-0.03em", color: "#a78bfa", fontVariantNumeric: "tabular-nums" }}>
+          99.2%
+        </div>
+        <div style={{ fontSize: "0.8rem", color: "var(--foreground-muted)", marginTop: "0.3rem" }}>Policy accuracy rate</div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function HomePage() {
   const [activeStep, setActiveStep] = useState(0);
@@ -91,6 +190,8 @@ export default function HomePage() {
               View Dashboard
             </Link>
           </div>
+
+          <LiveActivityTicker />
 
           {/* Stats row */}
           <div style={{ display: "flex", gap: "2rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -245,6 +346,11 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ── Live Counter Banner ──────────────────────────── */}
+      <section style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 1.5rem 5rem" }}>
+        <LiveCounterBanner />
       </section>
 
       {/* ── CTA ──────────────────────────────────────────── */}

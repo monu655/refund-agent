@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
         while (continueLoop) {
           const response = await groq.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
+            model: "llama3-70b-8192",
             messages,
             tools: TOOL_DEFINITIONS as any,
             tool_choice: "auto",

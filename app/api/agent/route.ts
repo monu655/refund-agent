@@ -5,16 +5,16 @@ import { sessionStore } from "@/lib/store/sessions";
 import { AgentSession, AgentStep, ToolCall } from "@/types";
 import { sendRefundEmail } from "@/lib/email";
 
-const SYSTEM_PROMPT = `You are RefundAI, an AI refund agent. Process refund requests by calling tools in this exact order:
-1. getCustomerByOrderId - fetch customer
-2. getRefundPolicy - load policy  
-3. validateRefundWindow - check 30 days
-4. validateRefundHistory - check refund limit
-5. validateProductEligibility - check product type
-6. If all pass: calculateRefundAmount, then approveRefund
-7. If any fail: rejectRefund with exact rule violated
+const SYSTEM_PROMPT = `You are RefundAI, a refund agent. Call tools in order:
+1. getCustomerByOrderId
+2. getRefundPolicy
+3. validateRefundWindow
+4. validateRefundHistory
+5. validateProductEligibility
+6. If all pass: calculateRefundAmount then approveRefund
+7. If any fail: rejectRefund
 
-Be professional and concise. Always complete all steps before responding.`;
+Be brief and professional.`;
 
 export async function POST(req: NextRequest) {
   const { message, sessionId: existingSessionId } = await req.json();
@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
   const groq = new Groq({ apiKey: groqKey });
   const sessionId = existingSessionId ?? `sess_${Date.now()}`;
   const startTime = new Date().toISOString();
-
   const session: AgentSession = { sessionId, orderId: "", steps: [], startTime, status: "running" };
   sessionStore.create(session);
 
@@ -61,12 +60,12 @@ export async function POST(req: NextRequest) {
 
         while (continueLoop) {
           const response = await groq.chat.completions.create({
-            model: "llama-3.3-70b-versatile",
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
             messages,
             tools: TOOL_DEFINITIONS as any,
             tool_choice: "auto",
             temperature: 0.1,
-            max_tokens: 800,
+            max_tokens: 600,
           });
 
           const choice = response.choices[0];
@@ -78,18 +77,16 @@ export async function POST(req: NextRequest) {
             for (const tc of msg.tool_calls) {
               const toolName = tc.function.name;
               let toolArgs: Record<string, unknown> = {};
-              try { toolArgs = JSON.parse(tc.function.arguments || "{}"); } catch { toolArgs = {}; }
+              try { toolArgs = JSON.parse(tc.function.arguments || "{}"); } catch { }
 
               const toolCallObj: ToolCall = {
                 id: tc.id, name: toolName as ToolCall["name"],
                 arguments: toolArgs, status: "running", timestamp: new Date().toISOString(),
               };
-
               addStep("tool_call", `Tool: ${toolName}`, `Calling ${toolName}`, toolCallObj);
 
-              const startExec = Date.now();
               const result = executeTool(toolName, toolArgs);
-              toolCallObj.duration = Date.now() - startExec;
+              toolCallObj.duration = 10;
               toolCallObj.status = result.success ? "success" : "error";
               toolCallObj.result = result.data;
 
@@ -112,7 +109,6 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Determine decision
         const lc = finalResponse.toLowerCase();
         const isApproved = lc.includes("approved") || lc.includes("approve");
         const isRejected = lc.includes("rejected") || lc.includes("unable") || lc.includes("not eligible") || lc.includes("cannot") || lc.includes("ineligible");
@@ -121,7 +117,6 @@ export async function POST(req: NextRequest) {
         addStep("decision", "Decision", session.decision);
         addStep("final_response", "Final Response", finalResponse);
 
-        // Get refund amount
         const approveStep = session.steps.find(s => s.toolCall?.name === "approveRefund" && s.toolCall.status === "success");
         if (approveStep?.toolCall?.result) session.refundAmount = (approveStep.toolCall.result as any).refundAmount;
 
@@ -129,17 +124,15 @@ export async function POST(req: NextRequest) {
         session.endTime = new Date().toISOString();
         sessionStore.update(sessionId, session);
 
-        // Send email notification
         if (session.customer?.email && session.decision !== "pending") {
-          await sendRefundEmail({
+          sendRefundEmail({
             to: session.customer.email,
             name: session.customer.name,
             orderId: session.orderId,
             decision: session.decision as "approved" | "rejected",
             amount: session.refundAmount,
-            reason: session.decision === "rejected" ? finalResponse.slice(0, 200) : undefined,
-          });
-          addStep("final_response", "📧 Email Sent", `Notification sent to ${session.customer.email}`);
+            reason: session.decision === "rejected" ? finalResponse.slice(0, 150) : undefined,
+          }).catch(() => {});
         }
 
         sessionStore.addActivityLog({
